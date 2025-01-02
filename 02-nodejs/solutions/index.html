@@ -6,27 +6,100 @@
     <title>Document</title>
 </head>
 <script>
-    function onPress(){
+    function deleteDone(id){
+        console.log("delete completed");
+        var parentElement = document.getElementById("mainArea");
+        var childElements = parentElement.getElementsByTagName("div");
+
+        for(var i=0; i<childElements.length; i++){
+            if(childElements[i].dataset.id==id){
+                parentElement.removeChild(childElements[i]);
+                break;
+            }
+        }
+        childElements.remove(id);
+    }
+    function deleteTodo(id){
+        console.log(id);
+        fetch("http://localhost:3000/todos/" + id, {
+            method: "DELETE",
+            header: {
+                "Content-Type":"application/json"
+            }
+        }).then(deleteDone(id))
+    }
+
+    function todosCallback(data) {
+        console.log(data);
+        var parentElement = document.getElementById("mainArea");
+        parentElement.innerHTML = ""; // Clear existing content before appending new data
+        for (var i = 0; i < data.length; i++) {
+            var childElement = document.createElement("div");
+            var grandChildElement1 = document.createElement("span");
+            grandChildElement1.innerHTML = data[i].title;
+
+            var grandChildElement2 = document.createElement("span");
+            grandChildElement2.innerHTML = data[i].description;
+
+            var grandChildElement3 = document.createElement("button");
+            grandChildElement3.innerHTML = "Delete";
+            grandChildElement3.setAttribute("onclick", "deleteTodo("+data[i].id+")");
+
+            childElement.append(grandChildElement1);
+            childElement.append(grandChildElement2);
+            childElement.append(grandChildElement3);
+
+            parentElement.appendChild(childElement);
+        }
+    }
+
+    function getDataCallback(resp) {
+        resp.json()
+            .then(todosCallback)
+            .catch((error) => console.error("Error parsing JSON:", error));
+    }
+
+    function getData() {
+        fetch("http://localhost:3000/todos", {
+            method: "GET"
+        })
+        .then(getDataCallback)
+        .catch((error) => console.error("Error fetching data:", error));
+    }
+
+    function onPress() {
+        var title = document.getElementById("title").value;
+        var description = document.getElementById("description").value;
+        console.log(title);
+        console.log(description);
         fetch("http://localhost:3000/todos", {
             method: "POST",
             body: JSON.stringify({
-                title: "Gym",
-                description: "Go to gym everyday"
+                title: title,
+                description: description
             }),
             headers: {
                 "Content-Type": "application/json"
             }
         })
-        .then(data => {
-        console.log("Todo added:", data);
-    })
+        .then((resp) => {
+            if (resp.ok) {
+                getData(); // Refresh the list after successful addition
+            } else {
+                console.error("Failed to add todo:", resp.statusText);
+            }
+        })
+        .catch((error) => console.error("Error sending data:", error));
     }
+
+    getData();
 </script>
 <body>
     Todo Title
     <input type="text" id="title">
     Todo Description
-    <input type="text" id="title">
+    <input type="text" id="description">
     <button onclick="onPress()">send todo</button>
+    <div id="mainArea"></div>
 </body>
 </html>
